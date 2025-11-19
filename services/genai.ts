@@ -1,8 +1,9 @@
 
 import { GoogleGenAI, Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { ExamQuestion, Flashcard, MathStep } from "../types";
+import { getEnv } from "../config";
 
-const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAiClient = () => new GoogleGenAI({ apiKey: getEnv("API_KEY") });
 
 const safetySettings = [
   {
