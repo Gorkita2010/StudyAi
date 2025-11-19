@@ -68,9 +68,13 @@ export const extractTextFromMedia = async (file: File): Promise<string> => {
           }
       });
       return response.text || "";
-  } catch (e) {
+  } catch (e: any) {
       console.error("Extraction failed", e);
-      return `[Error extracting text from ${file.name}]`;
+      let msg = e.message || e.toString();
+      if (msg.includes("413")) msg = "File too large (Max 10MB) or too many pages.";
+      if (msg.includes("403")) msg = "API Key invalid or unauthorized domain.";
+      if (msg.includes("400")) msg = "Bad Request. File format might not be supported.";
+      return `[Error extracting text from ${file.name}: ${msg}]`;
   }
 }
 

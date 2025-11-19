@@ -193,8 +193,14 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
     <div className={`max-w-5xl mx-auto p-6 md:p-8 rounded-xl ${theme.cardBg} ${theme.cardBorder} text-center space-y-6 relative animate-fadeIn transition-colors duration-300`}>
       {/* Header */}
       <div className={`flex justify-between items-center pb-4 border-b ${theme.cardBorder}`}>
-         <div className="flex items-center space-x-2">
-            <span className="text-2xl">{currentUser.avatar}</span>
+         <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-slate-700/50 border border-slate-600">
+                {currentUser.avatar && currentUser.avatar.startsWith('http') ? (
+                    <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-2xl">{currentUser.avatar || '👤'}</span>
+                )}
+            </div>
             <div className="text-left">
                 <p className={`text-xs font-bold uppercase ${theme.textSecondary}`}>{t('welcomeUser', systemLanguage)}</p>
                 <p className={`font-bold ${theme.textMain}`}>{currentUser.name}</p>
