@@ -1,0 +1,7 @@
+{
+  "name": "StudyAi",
+  "description": "Your personal AI Examiner. Paste your syllabus and take Oral or Written exams to ensure you are 100% ready.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
