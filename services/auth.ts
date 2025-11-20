@@ -1,6 +1,7 @@
 
 import { User, UserProfile } from "../types";
 import { GOOGLE_CLIENT_ID } from "../config";
+import { detectBrowserLanguage } from "../utils/translations";
 
 const USER_KEY = 'studyAi_currentUser';
 const PROFILE_PREFIX = 'studyAi_profile_';
@@ -120,7 +121,7 @@ export const AuthService = {
         return {
             userId,
             savedSyllabus: '',
-            lastLanguage: 'English',
+            lastLanguage: detectBrowserLanguage(), // Use detected language instead of hardcoded English
             totalScore: 0,
             topicStats: {}
         };

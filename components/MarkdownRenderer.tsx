@@ -8,8 +8,9 @@ interface MarkdownRendererProps {
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) => {
-  // Helper to parse **bold** text within a string
-  const parseInlineStyles = (text: string) => {
+  // Helper to strip markdown symbols (**text**) but keep the content
+  // and return styled elements
+  const renderStyledText = (text: string, isBold = false) => {
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -19,7 +20,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) =
           </strong>
         );
       }
-      return part;
+      return <span key={index} className={isBold ? 'font-bold' : ''}>{part}</span>;
     });
   };
 
@@ -30,38 +31,42 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) =
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) {
-        elements.push(<div key={i} className="h-4" />); // Spacer
+        elements.push(<div key={`spacer-${i}`} className="h-3" />); // Subtle spacer
         continue;
       }
 
-      // Headers
+      // Headers (Strip # and style)
       if (line.startsWith('### ')) {
+        const text = line.replace(/^###\s+/, '');
         elements.push(
-          <h3 key={i} className={`text-xl font-bold mt-4 mb-2 ${theme.textMain}`}>
-            {line.replace('### ', '')}
+          <h3 key={i} className={`text-lg font-bold mt-4 mb-2 ${theme.textMain} flex items-center`}>
+            <span className={`inline-block w-1.5 h-6 mr-2 rounded-full bg-gradient-to-b from-transparent via-${theme.primaryBtn.split('-')[1]}-400 to-transparent opacity-50`}></span>
+            {renderStyledText(text)}
           </h3>
         );
       } else if (line.startsWith('## ')) {
+        const text = line.replace(/^##\s+/, '');
         elements.push(
-          <h2 key={i} className={`text-2xl font-bold mt-6 mb-3 border-b ${theme.cardBorder} pb-2 ${theme.textMain}`}>
-            {line.replace('## ', '')}
+          <h2 key={i} className={`text-xl font-bold mt-6 mb-3 pb-1 border-b ${theme.cardBorder} ${theme.textMain}`}>
+            {renderStyledText(text)}
           </h2>
         );
       } else if (line.startsWith('# ')) {
+        const text = line.replace(/^#\s+/, '');
         elements.push(
-          <h1 key={i} className={`text-3xl font-extrabold mt-6 mb-4 ${theme.textMain}`}>
-            {line.replace('# ', '')}
+          <h1 key={i} className={`text-3xl font-extrabold mt-2 mb-6 tracking-tight ${theme.textMain}`}>
+            {renderStyledText(text)}
           </h1>
         );
       } 
-      // List Items
-      else if (line.startsWith('- ') || line.startsWith('* ')) {
-        const text = line.substring(2);
+      // List Items (Strip - or * and style with icon)
+      else if (line.match(/^[-*]\s/)) {
+        const text = line.replace(/^[-*]\s+/, '');
         elements.push(
-          <div key={i} className="flex items-start space-x-3 mb-2 ml-2">
-            <div className={`mt-1.5 min-w-[6px] h-[6px] rounded-full ${theme.primaryBtn.split(' ')[0]}`}></div>
+          <div key={i} className="flex items-start space-x-3 mb-2 ml-1">
+             <div className={`mt-1.5 min-w-[6px] h-[6px] rounded-full ${theme.accentColor.replace('text-', 'bg-')}`}></div>
             <p className={`leading-relaxed ${theme.textSecondary}`}>
-              {parseInlineStyles(text)}
+              {renderStyledText(text)}
             </p>
           </div>
         );
@@ -69,8 +74,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) =
       // Regular Paragraphs
       else {
         elements.push(
-          <p key={i} className={`mb-2 leading-relaxed ${theme.textMain}`}>
-            {parseInlineStyles(line)}
+          <p key={i} className={`mb-3 leading-relaxed ${theme.textMain} text-base opacity-90`}>
+            {renderStyledText(line)}
           </p>
         );
       }
@@ -78,7 +83,13 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, theme }) =
     return elements;
   };
 
-  return <div className="space-y-1">{renderLines()}</div>;
+  return (
+      <div className={`p-8 rounded-xl ${theme.cardBg} shadow-inner bg-opacity-50 backdrop-blur-sm border ${theme.cardBorder}`}>
+          <div className="space-y-1 font-sans">
+            {renderLines()}
+          </div>
+      </div>
+  );
 };
 
 export default MarkdownRenderer;

@@ -1,9 +1,8 @@
 
 import { GoogleGenAI, Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { ExamQuestion, Flashcard, MathStep } from "../types";
-import { getEnv } from "../config";
 
-const getAiClient = () => new GoogleGenAI({ apiKey: getEnv("API_KEY") });
+const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const safetySettings = [
   {
@@ -150,7 +149,7 @@ export const generateExamQuestion = async (
   SYLLABUS: """${studyMaterial.substring(0, 100000)}"""
   DIFFICULTY: ${difficulty}
   LANGUAGE: ${language}
-  FORMAT: ${examFormat === 'test' ? 'Multiple Choice (4 options)' : 'Written Essay Question'}
+  FORMAT: ${examFormat === 'test' ? 'Multiple Choice (4 options: A, B, C, D)' : 'Written Essay Question'}
   ${topicInstruction}
   Task: Generate ONE exam question.
   `;
@@ -228,6 +227,12 @@ export const validateExamAnswer = async (
     Student Text Answer: ${userAnswer}
     ${imageFile ? "Note: The student also provided an image/diagram answer." : ""}
     Language: ${language}
+    
+    IMPORTANT GRADING INSTRUCTION: 
+    - Be LENIENT. Focus on CONCEPTUAL UNDERSTANDING.
+    - Do NOT require verbatim/exact matching of the syllabus text.
+    - If the student explains the core idea correctly using their own words, mark it as correct.
+    - Only mark incorrect if the answer is factually wrong or completely irrelevant.
     
     Task: Determine if the answer (text + image if present) is correct based on the syllabus. Return score 0-100.
   `;
@@ -313,15 +318,24 @@ async function decodeBase64Audio(base64Audio: string) {
 export const generateStudyContent = async (
   studyMaterial: string, 
   type: 'summary' | 'outline' | 'mindmap', 
-  language: string
+  language: string,
+  density: 'dense' | 'medium' | 'concise' = 'medium'
 ): Promise<string> => {
   const ai = getAiClient();
   let prompt = "";
+  
+  const densityInstructions = {
+      dense: "Create a highly detailed, comprehensive output. Retain 80% of the source details.",
+      medium: "Create a balanced output. Retain key concepts and major supporting details (60%).",
+      concise: "Create a very brief, high-level overview. Focus only on the most critical core concepts (35%)."
+  };
+
+  const instruction = densityInstructions[density];
 
   if (type === 'summary') {
-    prompt = `ROLE: Expert Academic Tutor. TASK: Create a concise SUMMARY of the syllabus. FORMAT: Markdown. Use #, ##, **bold**, - list. LANGUAGE: ${language}. SYLLABUS: """${studyMaterial.substring(0, 90000)}"""`;
+    prompt = `ROLE: Expert Academic Tutor. TASK: Create a SUMMARY of the syllabus. ${instruction} FORMAT: Markdown. Do not use code blocks. Use #, ##, **bold**, - list. LANGUAGE: ${language}. SYLLABUS: """${studyMaterial.substring(0, 90000)}"""`;
   } else if (type === 'outline') {
-    prompt = `ROLE: Curriculum Designer. TASK: Create a hierarchical OUTLINE. FORMAT: Markdown. Use #, ##, ###, -. LANGUAGE: ${language}. SYLLABUS: """${studyMaterial.substring(0, 90000)}"""`;
+    prompt = `ROLE: Curriculum Designer. TASK: Create a hierarchical OUTLINE. ${instruction} FORMAT: Markdown. Do not use code blocks. Use #, ##, ###, -. LANGUAGE: ${language}. SYLLABUS: """${studyMaterial.substring(0, 90000)}"""`;
   } else if (type === 'mindmap') {
     prompt = `ROLE: Visual Thinker. TASK: Generate MERMAID.JS graph TD syntax. RULES: 'graph TD;', short labels, no special chars in IDs. LANGUAGE: ${language}. SYLLABUS: """${studyMaterial.substring(0, 90000)}"""`;
   }
@@ -375,7 +389,7 @@ export const generateFlashcards = async (studyMaterial: string, language: string
     }
 };
 
-export const generatePodcast = async (studyMaterial: string, language: string): Promise<AudioBuffer | null> => {
+export const generatePodcast = async (studyMaterial: string, language: string, coveragePercentage: number): Promise<AudioBuffer | null> => {
     const ai = getAiClient();
     
     // Step 1: Generate the Script using the text model
@@ -383,12 +397,17 @@ export const generatePodcast = async (studyMaterial: string, language: string): 
     You are a scriptwriter for an educational podcast.
     TASK: Generate a deep, comprehensive dialogue between two hosts: Puck (Professor) and Kore (Student).
     
+    COVERAGE REQUIREMENT: The user wants to cover approximately ${coveragePercentage}% of the provided material.
+    - If 100%: Cover every single detail, key date, and name.
+    - If 80-90%: Cover all main topics and most details, omit minor trivia.
+    - If 60-70%: Focus on main concepts and key supporting facts.
+    - If 50%: Rapid fire summary of only the most crucial highlights.
+
     REQUIREMENTS:
-    1. LENGTH: Comprehensive discussion. Aim for a detailed script (approx 1500-2000 characters).
+    1. LENGTH: Appropriate for the requested coverage.
     2. CONTENT: 
-       - Identify and explicitly mention IMPORTANT DATES, NAMES, and KEY FIGURES from the syllabus.
-       - Discuss the most complex topics in depth.
-       - Ensure a complete summary of the provided material.
+       - Identify and explicitly mention IMPORTANT DATES, NAMES, and KEY FIGURES if relevant to the coverage.
+       - Discuss complex topics clearly.
     3. STYLE: Engaging, conversational, yet highly educational.
     4. LANGUAGE: ${language}
     

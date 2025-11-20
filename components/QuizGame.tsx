@@ -39,6 +39,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ config, onExit, systemLanguage, the
   const [totalScore, setTotalScore] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [showMath, setShowMath] = useState(false);
   
   const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,6 +88,7 @@ const QuizGame: React.FC<QuizGameProps> = ({ config, onExit, systemLanguage, the
     setCurrentQ(q);
     setLoading(false);
 
+    // Ensure speech does not block UI rendering
     if (q.question && audioContextRef.current) {
         generateSpeech(q.question, voiceName).then(buffer => {
              if (buffer && audioContextRef.current) {
@@ -250,10 +252,20 @@ const QuizGame: React.FC<QuizGameProps> = ({ config, onExit, systemLanguage, the
                     <div className={`mt-8 pt-6 border-t ${theme.cardBorder}`}>
                         <div className="flex justify-between items-center mb-2">
                            <p className={`text-xs uppercase tracking-wider ${theme.textSecondary}`}>{t('yourAnswer', systemLanguage)}</p>
-                           <div className="flex space-x-1 overflow-x-auto pb-1">
-                               {MATH_SYMBOLS.map(s => (
-                                   <button key={s.char} onClick={() => insertSymbol(s.char)} title={s.tooltip} className={`px-2 py-1 rounded text-sm min-w-[28px] ${theme.secondaryBtn}`}>{s.char}</button>
-                               ))}
+                           <div className="flex items-center space-x-3">
+                               <button 
+                                    onClick={() => setShowMath(!showMath)} 
+                                    className={`text-xs px-2 py-1 rounded border ${theme.cardBorder} ${showMath ? theme.accentColor : theme.textSecondary}`}
+                               >
+                                   {t('showMathSymbols', systemLanguage)}
+                               </button>
+                               {showMath && (
+                                   <div className="flex space-x-1 overflow-x-auto pb-1 max-w-[200px]">
+                                       {MATH_SYMBOLS.map(s => (
+                                           <button key={s.char} onClick={() => insertSymbol(s.char)} title={s.tooltip} className={`px-2 py-1 rounded text-sm min-w-[28px] ${theme.secondaryBtn}`}>{s.char}</button>
+                                       ))}
+                                   </div>
+                               )}
                            </div>
                         </div>
                         {!result ? (

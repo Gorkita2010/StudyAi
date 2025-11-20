@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+import { downloadFile } from '../utils/download';
 
 interface MermaidDiagramProps {
   chart: string;
@@ -62,6 +63,13 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart }) => {
     setPosition({ x: 0, y: 0 });
   };
 
+  const handleDownloadSVG = () => {
+      if (contentRef.current && contentRef.current.firstChild) {
+          const svg = contentRef.current.innerHTML;
+          downloadFile(svg, `StudyAi_MindMap_${Date.now()}.svg`, 'image/svg+xml');
+      }
+  }
+
   return (
     <div className="relative w-full h-[500px] bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700">
        {/* Diagram Container */}
@@ -94,6 +102,9 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart }) => {
           </button>
           <button onClick={reset} className="w-10 h-10 bg-slate-800 text-white rounded-full shadow-lg border border-slate-600 hover:bg-slate-700 flex items-center justify-center font-bold" title="Reset View">
              ↺
+          </button>
+          <button onClick={handleDownloadSVG} className="w-10 h-10 bg-blue-600 text-white rounded-full shadow-lg border border-blue-400 hover:bg-blue-500 flex items-center justify-center font-bold" title="Download SVG">
+             ⬇
           </button>
        </div>
        
