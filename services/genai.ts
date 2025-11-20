@@ -1,8 +1,9 @@
 
-import { GoogleGenAI, Modality, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { GoogleGenAI, Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { ExamQuestion, Flashcard, MathStep } from "../types";
+import { API_KEY } from "../config";
 
-const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAiClient = () => new GoogleGenAI({ apiKey: API_KEY });
 
 const safetySettings = [
   {
@@ -22,6 +23,26 @@ const safetySettings = [
     threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
   },
 ];
+
+// Helper function to handle Rate Limits (429) with exponential backoff
+const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    // Check for 429 or "RESOURCE_EXHAUSTED"
+    const isRateLimit = error.status === 429 || 
+                        error.code === 429 || 
+                        error.message?.includes('429') || 
+                        error.message?.includes('RESOURCE_EXHAUSTED');
+    
+    if (retries > 0 && isRateLimit) {
+      console.warn(`Quota exceeded. Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return callWithRetry(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
 
 export const extractTextFromMedia = async (file: File): Promise<string> => {
   const ai = getAiClient();
@@ -46,7 +67,7 @@ export const extractTextFromMedia = async (file: File): Promise<string> => {
   });
 
   try {
-      const response = await ai.models.generateContent({
+      const response = await callWithRetry(() => ai.models.generateContent({
           model: "gemini-2.5-flash",
           contents: [
               {
@@ -65,7 +86,7 @@ export const extractTextFromMedia = async (file: File): Promise<string> => {
           config: {
             safetySettings: safetySettings
           }
-      });
+      })) as GenerateContentResponse;
       return response.text || "";
   } catch (e: any) {
       console.error("Extraction failed", e);
@@ -73,6 +94,7 @@ export const extractTextFromMedia = async (file: File): Promise<string> => {
       if (msg.includes("413")) msg = "File too large (Max 10MB) or too many pages.";
       if (msg.includes("403")) msg = "API Key invalid or unauthorized domain.";
       if (msg.includes("400")) msg = "Bad Request. File format might not be supported.";
+      if (msg.includes("429")) msg = "Server busy (Rate Limit). Please try again in a moment.";
       return `[Error extracting text from ${file.name}: ${msg}]`;
   }
 }
@@ -92,7 +114,7 @@ export const analyzeSyllabus = async (studyMaterial: string): Promise<{ minQuest
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -108,7 +130,7 @@ export const analyzeSyllabus = async (studyMaterial: string): Promise<{ minQuest
                     }
                 }
             }
-        });
+        })) as GenerateContentResponse;
         const json = JSON.parse(response.text || "{}");
         const topics = json.topics || [];
         const count = topics.length;
@@ -169,14 +191,14 @@ export const generateExamQuestion = async (
   } : {};
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry(() => ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         ...config,
         safetySettings: safetySettings,
       },
-    });
+    })) as GenerateContentResponse;
 
     if (examFormat === 'test') {
         return JSON.parse(response.text || "{}") as ExamQuestion;
@@ -191,7 +213,7 @@ export const generateExamQuestion = async (
   } catch (error) {
     console.error("Error generating exam question:", error);
     return {
-      question: "Error generating question.",
+      question: "Error generating question (Rate Limit or Network Error).",
     };
   }
 };
@@ -240,7 +262,7 @@ export const validateExamAnswer = async (
   const contents = imagePart ? [imagePart, { text: textPrompt }] : [{ text: textPrompt }];
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry(() => ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: contents,
       config: {
@@ -255,7 +277,7 @@ export const validateExamAnswer = async (
            }
         }
       }
-    });
+    })) as GenerateContentResponse;
     
     const json = JSON.parse(response.text || "{}");
     return {
@@ -265,7 +287,7 @@ export const validateExamAnswer = async (
     };
   } catch (e) {
     console.error("Validation error", e);
-    return { correct: false, score: 0, feedback: "Error grading answer." };
+    return { correct: false, score: 0, feedback: "Error grading answer (Try again)." };
   }
 };
 
@@ -274,7 +296,7 @@ export const generateSpeech = async (text: string, voiceName: string = 'Kore'): 
     const ai = getAiClient();
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text }] }],
             config: {
@@ -285,7 +307,7 @@ export const generateSpeech = async (text: string, voiceName: string = 'Kore'): 
                     },
                 },
             },
-        });
+        })) as GenerateContentResponse;
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (!base64Audio) return null;
@@ -341,11 +363,11 @@ export const generateStudyContent = async (
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry(() => ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: { safetySettings: safetySettings }
-    });
+    })) as GenerateContentResponse;
     let text = response.text || "";
     if (type === 'mindmap') {
        text = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
@@ -365,7 +387,7 @@ export const generateFlashcards = async (studyMaterial: string, language: string
     Syllabus: """${studyMaterial.substring(0, 90000)}"""
     `;
     try {
-        const response = await ai.models.generateContent({
+        const response = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -381,7 +403,7 @@ export const generateFlashcards = async (studyMaterial: string, language: string
                     }
                 }
             }
-        });
+        })) as GenerateContentResponse;
         return JSON.parse(response.text || "[]");
     } catch (e) {
         console.error("Flashcard gen error", e);
@@ -421,11 +443,11 @@ export const generatePodcast = async (studyMaterial: string, language: string, c
 
     let script = "";
     try {
-        const scriptResponse = await ai.models.generateContent({
+        const scriptResponse = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: scriptPrompt,
             config: { safetySettings: safetySettings }
-        });
+        })) as GenerateContentResponse;
         script = scriptResponse.text || "";
     } catch (e) {
         console.error("Podcast Script Generation Error", e);
@@ -436,7 +458,7 @@ export const generatePodcast = async (studyMaterial: string, language: string, c
 
     // Step 2: Send the generated script to the TTS model
     try {
-         const response = await ai.models.generateContent({
+         const response = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text: script }] }],
             config: {
@@ -450,7 +472,7 @@ export const generatePodcast = async (studyMaterial: string, language: string, c
                     }
                 }
             }
-        });
+        })) as GenerateContentResponse;
         
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (!base64Audio) return null;
@@ -496,7 +518,7 @@ export const solveMathProblem = async (problemText: string, language: string, im
     const contents = imagePart ? [imagePart, { text: prompt }] : [{ text: prompt }];
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: contents,
             config: {
@@ -512,7 +534,7 @@ export const solveMathProblem = async (problemText: string, language: string, im
                     }
                 }
             }
-        });
+        })) as GenerateContentResponse;
         return JSON.parse(response.text || "[]");
     } catch (e) {
         console.error("Math Tutor Error", e);

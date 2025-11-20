@@ -8,6 +8,7 @@ import SettingsModal from './components/SettingsModal';
 import StudyHub from './components/StudyHub';
 import MathTutor from './components/MathTutor';
 import Auth from './components/Auth';
+import Logo from './components/Logo';
 import { GameConfig, GameMode, Theme, User } from './types';
 import { t, detectBrowserLanguage } from './utils/translations';
 import { themes } from './utils/themes';
@@ -114,28 +115,37 @@ const App: React.FC = () => {
       <div className="container mx-auto px-4 py-6 min-h-screen flex flex-col">
         
         {/* Header */}
-        <header className={`flex items-center justify-between mb-8 pb-4 border-b ${currentTheme.cardBorder}`}>
-           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setMode(GameMode.SETUP)}>
-             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-lg transition-colors ${currentTheme.primaryBtn}`}>
-               AI
-             </div>
+        <header className={`flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b ${currentTheme.cardBorder}`}>
+           <div className="flex items-center space-x-3 cursor-pointer mb-4 md:mb-0" onClick={() => setMode(GameMode.SETUP)}>
+             <Logo className="w-12 h-12" />
              <span className={`text-2xl font-bold tracking-tight ${currentTheme.textMain}`}>{t('appTitle', systemLanguage)}</span>
            </div>
            
-           <div className="flex items-center space-x-4">
-             <span className={`text-xs hidden md:block ${currentTheme.textSecondary}`}>
-               Student Edition | Powered by Gemini 2.5
-             </span>
-             <button 
-               onClick={() => setShowSettings(true)}
-               className={`p-2 rounded-full transition-all ${currentTheme.textSecondary} hover:${currentTheme.accentColor} hover:bg-slate-500/10`}
-               title="Settings"
-             >
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-               </svg>
-             </button>
+           <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-6 text-right">
+             <div className="flex flex-col">
+                <span className={`text-[10px] uppercase tracking-widest font-bold ${currentTheme.textSecondary} opacity-70`}>
+                  Created by
+                </span>
+                <span className={`text-sm font-bold ${currentTheme.accentColor} font-serif italic`}>
+                  Jorge Vegas Mendiola
+                </span>
+             </div>
+             
+             <div className="flex items-center space-x-4 justify-end">
+                <span className={`text-xs hidden lg:block ${currentTheme.textSecondary} border-l pl-4 ${currentTheme.cardBorder}`}>
+                  Student Edition | Powered by Gemini 2.5
+                </span>
+                <button 
+                  onClick={() => setShowSettings(true)}
+                  className={`p-2 rounded-full transition-all ${currentTheme.textSecondary} hover:${currentTheme.accentColor} hover:bg-slate-500/10`}
+                  title="Settings"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+             </div>
            </div>
         </header>
 

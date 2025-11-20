@@ -1,25 +1,41 @@
 
-// Helper to safely read environment variables in Vite/Vercel/Node environments
-export const getEnv = (key: string, fallback: string = ""): string => {
-  // 1. Try import.meta.env (Vite standard)
-  // Cast to any to avoid TS error about 'env' missing on ImportMeta
-  const meta = import.meta as any;
-  if (typeof meta !== 'undefined' && meta.env) {
-     if (meta.env[`VITE_${key}`]) return meta.env[`VITE_${key}`];
-     if (meta.env[key]) return meta.env[key];
-  }
-  
-  // 2. Try process.env (Node/Vercel Serverless)
-  try {
-     if (typeof process !== 'undefined' && process.env) {
-         if (process.env[`VITE_${key}`]) return process.env[`VITE_${key}`];
-         if (process.env[key]) return process.env[key];
-     }
-  } catch(e) { 
-      // Ignore reference errors if process is not defined
-  }
+// En entornos Vite/Vercel, es CRÍTICO acceder a las variables de forma explícita
+// (ej. import.meta.env.VITE_NOMBRE) para que el sistema de build las sustituya.
+// El acceso dinámico (env[key]) suele fallar en producción.
 
-  return fallback;
+const getMetaEnv = () => {
+    try {
+        return (import.meta as any).env || {};
+    } catch {
+        return {};
+    }
+};
+
+const getProcessEnv = () => {
+    try {
+        return typeof process !== 'undefined' ? process.env : {};
+    } catch {
+        return {};
+    }
 }
 
-export const GOOGLE_CLIENT_ID = getEnv("GOOGLE_CLIENT_ID", "924240888788-vg1tujmq22a99ueaejsm74imb8shmfbc.apps.googleusercontent.com");
+const metaEnv = getMetaEnv();
+const processEnv = getProcessEnv();
+
+// Buscamos la API KEY en orden de prioridad, incluyendo tus nombres personalizados
+export const API_KEY = 
+    metaEnv.VITE_API_KEY || 
+    metaEnv.API_KEY || 
+    metaEnv.Vite_Clave_API || // Tu nombre personalizado de la captura
+    processEnv.VITE_API_KEY || 
+    processEnv.API_KEY || 
+    "";
+
+// Buscamos el Client ID, incluyendo la versión con la 'E' extra
+export const GOOGLE_CLIENT_ID = 
+    metaEnv.VITE_GOOGLE_CLIENT_ID || 
+    metaEnv.GOOGLE_CLIENT_ID ||
+    metaEnv.VITE_GOOGLE_CLIENTE_ID || // Tu nombre con error tipográfico de la captura
+    processEnv.VITE_GOOGLE_CLIENT_ID || 
+    processEnv.GOOGLE_CLIENT_ID || 
+    "924240888788-vg1tujmq22a99ueaejsm74imb8shmfbc.apps.googleusercontent.com";

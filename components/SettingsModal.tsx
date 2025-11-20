@@ -25,6 +25,8 @@ const voices = [
   { id: 'Fenrir', labelKey: 'voiceMale2' },
   { id: 'Kore', labelKey: 'voiceFemale1' },
   { id: 'Aoede', labelKey: 'voiceFemale2' },
+  { id: 'Charon', labelKey: 'voiceMaleSpain' },
+  { id: 'Zephyr', labelKey: 'voiceFemaleSpain' },
 ];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ 

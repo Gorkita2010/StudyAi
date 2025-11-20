@@ -4,6 +4,7 @@ import { Theme, User } from '../types';
 import { AuthService } from '../services/auth';
 import { t } from '../utils/translations';
 import { GOOGLE_CLIENT_ID } from '../config';
+import Logo from './Logo';
 
 interface AuthProps {
     onLogin: (user: User) => void;
@@ -87,6 +88,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, systemLanguage, theme }) => {
         <div className="w-full max-w-md mx-auto px-4 animate-fadeIn">
             <div className={`p-8 rounded-2xl shadow-2xl ${theme.cardBg} ${theme.cardBorder}`}>
                 <div className="text-center mb-8">
+                    <div className="flex justify-center mb-6">
+                        <div className="">
+                            <Logo className="w-24 h-24" />
+                        </div>
+                    </div>
                     <h2 className={`text-3xl font-bold ${theme.textMain}`}>
                         {isRegistering ? t('registerTitle', systemLanguage) : t('loginTitle', systemLanguage)}
                     </h2>
