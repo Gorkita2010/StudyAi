@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { GameConfig, GameMode, Theme, User } from '../types';
+import { GameConfig, GameMode, Theme, User, ExamQuestion } from '../types';
 import { extractTextFromMedia, analyzeSyllabus } from '../services/genai';
 import { AuthService } from '../services/auth';
 import { t } from '../utils/translations';
+import VoiceInput from './VoiceInput';
 
 interface SetupProps {
   onStart: (config: GameConfig, mode: GameMode) => void;
@@ -11,12 +12,14 @@ interface SetupProps {
   theme: Theme;
   currentUser: User;
   onLogout: () => void;
+  isPro: boolean;
+  onUpgrade: () => void;
 }
 
 const examinerStyles = [
-  { id: 'strict', labelKey: 'styleStrict', prompt: 'You are a strict, formal academic professor. You demand precise answers and do not tolerate vague guessing.' },
-  { id: 'socratic', labelKey: 'styleSocratic', prompt: 'You are a helpful tutor who uses the Socratic method. If the user answers wrongly, guide them with a hint question.' },
-  { id: 'encouraging', labelKey: 'styleEncouraging', prompt: 'You are a high-energy study coach. Keep the user motivated even if they fail.' },
+  { id: 'strict', labelKey: 'styleStrict' },
+  { id: 'socratic', labelKey: 'styleSocratic' },
+  { id: 'encouraging', labelKey: 'styleEncouraging' },
 ];
 
 const difficultyLevels = [
@@ -37,15 +40,13 @@ const languages = [
   { code: 'German', name: 'Deutsch' },
 ];
 
-const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUser, onLogout }) => {
+const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUser, onLogout, isPro, onUpgrade }) => {
   const [studyMaterial, setStudyMaterial] = useState('');
   const [difficulty, setDifficulty] = useState('Hard');
   const [examinerId, setExaminerId] = useState(examinerStyles[0].id);
-  // Initialize Exam Language with the System Language passed from App
   const [language, setLanguage] = useState(systemLanguage);
   const [examFormat, setExamFormat] = useState<'open' | 'test'>('open');
   
-  // Analysis State
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recommendedCount, setRecommendedCount] = useState(5);
@@ -55,38 +56,37 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
   
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Stats State
+  const [showFormatModal, setShowFormatModal] = useState(false);
   const [stats, setStats] = useState<Record<string, {correct: number, total: number}>>({});
+  const [failedQuestions, setFailedQuestions] = useState<ExamQuestion[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync language when systemLanguage changes (e.g. on first load detection)
   useEffect(() => {
       const profile = AuthService.getUserProfile(currentUser.id);
-      // Only sync if the user hasn't specifically saved a preference in their profile
       if (!profile.lastLanguage) {
           setLanguage(systemLanguage);
       }
   }, [systemLanguage, currentUser.id]);
 
-  // Load Profile & Stats
   useEffect(() => {
       const profile = AuthService.getUserProfile(currentUser.id);
       if (profile.savedSyllabus) setStudyMaterial(profile.savedSyllabus);
       
-      // Update exam language: Use saved profile language OR system language
       if (profile.lastLanguage && languages.find(l => l.code === profile.lastLanguage)) {
           setLanguage(profile.lastLanguage);
       } else {
-          // Ensure it matches the current system language if no specific override saved
           setLanguage(systemLanguage);
       }
 
       if (profile.topicStats) setStats(profile.topicStats);
-  }, [currentUser.id]); // Removed systemLanguage from dependency to prevent overriding manual changes during session
+      
+      // Load failed questions
+      const fq = AuthService.getFailedQuestions(currentUser.id);
+      setFailedQuestions(fq);
 
-  // Autosave
+  }, [currentUser.id]);
+
   useEffect(() => {
       if (studyMaterial.length > 10) {
           const profile = AuthService.getUserProfile(currentUser.id);
@@ -94,26 +94,49 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
       }
   }, [studyMaterial, language, currentUser.id]);
 
-  const handleStart = (mode: GameMode) => {
-    // Allow math tutor without syllabus text
-    if (mode !== GameMode.MATH_TUTOR && studyMaterial.length < 50) {
+  const handleStart = (mode: GameMode, formatOverride?: 'open' | 'test', staticQs?: ExamQuestion[]) => {
+    if (!isPro && (mode === GameMode.MATH_TUTOR)) {
+        if(window.confirm(t('premiumFeature', systemLanguage) + ": " + t('proBenefits', systemLanguage) + ". " + t('unlockNow', systemLanguage) + "?")) {
+            onUpgrade();
+        }
+        return;
+    }
+
+    if (mode !== GameMode.MATH_TUTOR && studyMaterial.length < 50 && !staticQs) {
         alert("Please enter more study material (at least 50 characters).");
         return;
     }
-    const p = examinerStyles.find(p => p.id === examinerId);
+    
     const finalPlan = examPlan.length > 0 ? examPlan.slice(0, userQuestionCount) : [];
+    const selectedFormat = formatOverride || examFormat;
 
     onStart({
       studyMaterial,
       difficulty,
-      examinerStyle: p ? p.prompt : examinerStyles[0].prompt,
+      examinerStyle: examinerId, // Just ID now, services map it to prompt
       language,
-      examFormat,
-      totalQuestions: userQuestionCount,
+      examFormat: selectedFormat,
+      totalQuestions: staticQs ? staticQs.length : userQuestionCount,
       examPlan: finalPlan,
-      minQuestions: minCount
+      minQuestions: minCount,
+      staticQuestions: staticQs // Pass failed questions here
     }, mode);
   };
+
+  const handleReviewFailed = () => {
+      if (failedQuestions.length === 0) return;
+      handleStart(GameMode.QUIZ_SEARCH, 'open', failedQuestions);
+  }
+
+  const handleWrittenExamClick = () => {
+      setShowFormatModal(true);
+  }
+
+  const handleFormatSelection = (format: 'open' | 'test') => {
+      setExamFormat(format);
+      setShowFormatModal(false);
+      handleStart(GameMode.QUIZ_SEARCH, format);
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -157,7 +180,12 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
           setExamPlan([]);
           setRecommendedCount(5);
           setMinCount(3);
+          setFailedQuestions([]);
       }
+  }
+
+  const handleVoiceResult = (text: string) => {
+      setStudyMaterial(prev => prev + (prev ? ' ' : '') + text);
   }
 
   const renderAnalytics = () => {
@@ -166,12 +194,11 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
           <div className="p-4 text-center opacity-50 border rounded border-dashed">{t('noStats', systemLanguage)}</div>
       );
 
-      // Sort by weakness (lowest percentage correct)
       const sorted = topics.sort((a, b) => {
           const rateA = stats[a].correct / stats[a].total;
           const rateB = stats[b].correct / stats[b].total;
           return rateA - rateB;
-      }).slice(0, 5); // Show top 5 interesting stats
+      }).slice(0, 5);
 
       return (
           <div className="space-y-3">
@@ -204,7 +231,6 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
 
   return (
     <div className={`max-w-5xl mx-auto p-6 md:p-8 rounded-xl ${theme.cardBg} ${theme.cardBorder} text-center space-y-6 relative animate-fadeIn transition-colors duration-300`}>
-      {/* Header */}
       <div className={`flex justify-between items-center pb-4 border-b ${theme.cardBorder}`}>
          <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-slate-700/50 border border-slate-600">
@@ -230,17 +256,24 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 text-left">
         
-        {/* Left: Inputs */}
         <div className="lg:col-span-3 space-y-4 flex flex-col">
             <div className="flex justify-between items-end">
                 <label className={`block text-sm font-bold ${theme.textMain}`}>{t('syllabusLabel', systemLanguage)}</label>
-                <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isProcessing}
-                    className={`text-xs font-bold py-1 px-3 rounded transition-colors flex items-center ${theme.secondaryBtn}`}
-                >
-                    {isProcessing ? <span className="animate-pulse">{t('processing', systemLanguage)}</span> : t('uploadBtn', systemLanguage)}
-                </button>
+                <div className="flex items-center space-x-2">
+                    <VoiceInput 
+                        onResult={handleVoiceResult} 
+                        language={language}
+                        systemLanguage={systemLanguage}
+                        className={`p-2 rounded border ${theme.cardBorder} ${theme.textSecondary} hover:bg-slate-500/10`}
+                    />
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isProcessing}
+                        className={`text-xs font-bold py-1 px-3 rounded transition-colors flex items-center ${theme.secondaryBtn}`}
+                    >
+                        {isProcessing ? <span className="animate-pulse">{t('processing', systemLanguage)}</span> : t('uploadBtn', systemLanguage)}
+                    </button>
+                </div>
                 <input type="file" ref={fileInputRef} className="hidden" multiple accept=".txt,.pdf,.jpg,.jpeg,.png,.webp" onChange={handleFileUpload} />
             </div>
             
@@ -284,12 +317,29 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
             )}
         </div>
 
-        {/* Right: Analytics & Settings */}
         <div className="space-y-6">
-             {/* Analytics Widget */}
              <div className={`p-4 rounded-xl border ${theme.cardBorder} bg-slate-500/5`}>
                  <h3 className={`text-xs font-bold uppercase mb-3 ${theme.textSecondary}`}>{t('analyticsTitle', systemLanguage)}</h3>
                  {renderAnalytics()}
+             </div>
+             
+             {/* Failed Questions Bank */}
+             <div className={`p-4 rounded-xl border ${theme.cardBorder} bg-red-500/5`}>
+                 <h3 className={`text-xs font-bold uppercase mb-3 ${theme.textSecondary}`}>{t('failedQuestionsTitle', systemLanguage)}</h3>
+                 <div className="text-center">
+                     <span className={`text-2xl font-bold ${failedQuestions.length > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                        {failedQuestions.length}
+                     </span>
+                     <p className="text-xs text-slate-500 mb-3">{failedQuestions.length === 0 ? t('noFailedQuestions', systemLanguage) : "Questions pending review"}</p>
+                     {failedQuestions.length > 0 && (
+                         <button 
+                            onClick={handleReviewFailed}
+                            className={`w-full py-2 rounded font-bold text-xs bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20`}
+                         >
+                             {t('reviewFailedBtn', systemLanguage)}
+                         </button>
+                     )}
+                 </div>
              </div>
              
              <button 
@@ -299,7 +349,6 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
                 {t('clearData', systemLanguage)}
              </button>
 
-             {/* Quick Settings */}
              <div className="pt-4 border-t border-slate-700/50">
                 <label className={`block text-sm font-bold mb-2 ${theme.textMain}`}>{t('examLangLabel', systemLanguage)}</label>
                 <select
@@ -308,14 +357,6 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
                 >
                 {languages.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
                 </select>
-            </div>
-
-            <div>
-                <label className={`block text-sm font-bold mb-2 ${theme.textMain}`}>{t('formatLabel', systemLanguage)}</label>
-                <div className="flex space-x-2">
-                    <button onClick={() => setExamFormat('open')} className={`flex-1 py-2 text-xs font-bold rounded-lg border ${examFormat === 'open' ? theme.primaryBtn : `${theme.cardBorder} ${theme.textSecondary}`}`}>{t('formatWritten', systemLanguage)}</button>
-                    <button onClick={() => setExamFormat('test')} className={`flex-1 py-2 text-xs font-bold rounded-lg border ${examFormat === 'test' ? theme.primaryBtn : `${theme.cardBorder} ${theme.textSecondary}`}`}>{t('formatTest', systemLanguage)}</button>
-                </div>
             </div>
             
             <div>
@@ -334,7 +375,6 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
         <button onClick={() => handleStart(GameMode.STUDY_HUB)} disabled={isProcessing} className={`group p-6 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white shadow-lg disabled:opacity-50`}>
            <div className="text-3xl mb-2">🧠</div>
@@ -348,13 +388,14 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
            <span className="text-xs opacity-80">{t('startOralDesc', systemLanguage)}</span>
         </button>
 
-        <button onClick={() => handleStart(GameMode.QUIZ_SEARCH)} disabled={isProcessing} className={`group p-6 rounded-xl ${theme.secondaryBtn} disabled:opacity-50`}>
+        <button onClick={handleWrittenExamClick} disabled={isProcessing} className={`group p-6 rounded-xl ${theme.secondaryBtn} disabled:opacity-50`}>
            <div className="text-3xl mb-2">✍️</div>
            <span className="text-lg font-bold block">{t('startWritten', systemLanguage)}</span>
            <span className="text-xs opacity-80">{t('startWrittenDesc', systemLanguage)}</span>
         </button>
 
-        <button onClick={() => handleStart(GameMode.MATH_TUTOR)} disabled={isProcessing} className={`group p-6 rounded-xl bg-amber-700 hover:bg-amber-600 text-white shadow-lg disabled:opacity-50`}>
+        <button onClick={() => handleStart(GameMode.MATH_TUTOR)} disabled={isProcessing} className={`group p-6 rounded-xl ${!isPro ? 'bg-slate-700 grayscale' : 'bg-amber-700 hover:bg-amber-600'} text-white shadow-lg disabled:opacity-50 relative overflow-hidden`}>
+           {!isPro && <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10"><span className="text-2xl">🔒 PRO</span></div>}
            <div className="text-3xl mb-2">📐</div>
            <span className="text-lg font-bold block">{t('startMathTutor', systemLanguage)}</span>
            <span className="text-xs opacity-80">{t('startMathDesc', systemLanguage)}</span>
@@ -373,6 +414,43 @@ const Setup: React.FC<SetupProps> = ({ onStart, systemLanguage, theme, currentUs
               <button onClick={() => setShowPrivacy(false)} className={`mt-6 w-full py-2 rounded font-bold ${theme.secondaryBtn}`}>{t('close', systemLanguage)}</button>
            </div>
         </div>
+      )}
+
+      {showFormatModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+              <div className={`${theme.cardBg} p-8 rounded-2xl max-w-md w-full border ${theme.cardBorder} shadow-2xl transform scale-100`}>
+                  <h3 className={`text-2xl font-bold mb-6 text-center ${theme.textMain}`}>{t('selectFormatTitle', systemLanguage)}</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                      <button 
+                        onClick={() => handleFormatSelection('open')}
+                        className={`p-4 rounded-xl border-2 transition-all flex items-center space-x-4 group ${theme.cardBorder} hover:border-blue-500 hover:bg-blue-500/10`}
+                      >
+                          <span className="text-3xl">📝</span>
+                          <div className="text-left">
+                              <span className={`block text-lg font-bold ${theme.textMain}`}>{t('formatWritten', systemLanguage)}</span>
+                              <span className={`text-xs opacity-70 ${theme.textSecondary}`}>Open essay / text answer</span>
+                          </div>
+                      </button>
+
+                      <button 
+                        onClick={() => handleFormatSelection('test')}
+                        className={`p-4 rounded-xl border-2 transition-all flex items-center space-x-4 group ${theme.cardBorder} hover:border-green-500 hover:bg-green-500/10`}
+                      >
+                          <span className="text-3xl">☑️</span>
+                          <div className="text-left">
+                              <span className={`block text-lg font-bold ${theme.textMain}`}>{t('formatTest', systemLanguage)}</span>
+                              <span className={`text-xs opacity-70 ${theme.textSecondary}`}>Multiple choice (A, B, C, D)</span>
+                          </div>
+                      </button>
+                  </div>
+                  <button 
+                    onClick={() => setShowFormatModal(false)} 
+                    className={`mt-6 w-full py-3 rounded-lg font-bold transition-colors ${theme.cardBorder} ${theme.textSecondary} hover:bg-white/5`}
+                  >
+                    {t('close', systemLanguage)}
+                  </button>
+              </div>
+          </div>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import StudyHub from './components/StudyHub';
 import MathTutor from './components/MathTutor';
 import Auth from './components/Auth';
 import Logo from './components/Logo';
+import AdBanner from './components/AdBanner';
 import { GameConfig, GameMode, Theme, User } from './types';
 import { t, detectBrowserLanguage } from './utils/translations';
 import { themes } from './utils/themes';
@@ -24,6 +25,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme>(themes.serious);
   const [voiceName, setVoiceName] = useState('Puck');
+  const [isPro, setIsPro] = useState(false);
 
   // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -40,7 +42,7 @@ const App: React.FC = () => {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     
-    // Load Preferences (Theme & Language)
+    // Load Preferences (Theme & Language & Pro Status)
     const profile = AuthService.getUserProfile(user.id);
     
     // 1. Apply Theme Preference
@@ -52,6 +54,9 @@ const App: React.FC = () => {
     if (profile.lastLanguage) {
       setSystemLanguage(profile.lastLanguage);
     }
+    
+    // 3. Apply Pro Status
+    setIsPro(!!profile.isPro);
   }
 
   const handleLogout = () => {
@@ -59,7 +64,7 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setMode(GameMode.SETUP);
     setConfig(null);
-    // Optional: Reset theme to default on logout, or keep it. Keeping it is usually better UX.
+    setIsPro(false);
   }
 
   const handleStart = (gameConfig: GameConfig, selectedMode: GameMode) => {
@@ -109,16 +114,25 @@ const App: React.FC = () => {
         AuthService.saveUserProfile(profile);
       }
   }
+  
+  const handleTogglePro = () => {
+      if (!currentUser) return;
+      const newStatus = !isPro;
+      setIsPro(newStatus);
+      AuthService.setProStatus(currentUser.id, newStatus);
+      if(newStatus) alert(t('proBenefits', systemLanguage));
+  }
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 ${currentTheme.bgApp} ${currentTheme.font} selection:bg-blue-500/30`}>
-      <div className="container mx-auto px-4 py-6 min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${currentTheme.bgApp} ${currentTheme.font} selection:bg-blue-500/30`}>
+      <div className="flex-grow container mx-auto px-4 py-6 flex flex-col">
         
         {/* Header */}
         <header className={`flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b ${currentTheme.cardBorder}`}>
            <div className="flex items-center space-x-3 cursor-pointer mb-4 md:mb-0" onClick={() => setMode(GameMode.SETUP)}>
              <Logo className="w-12 h-12" />
              <span className={`text-2xl font-bold tracking-tight ${currentTheme.textMain}`}>{t('appTitle', systemLanguage)}</span>
+             {isPro && <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded-full uppercase">PRO</span>}
            </div>
            
            <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-6 text-right">
@@ -132,9 +146,6 @@ const App: React.FC = () => {
              </div>
              
              <div className="flex items-center space-x-4 justify-end">
-                <span className={`text-xs hidden lg:block ${currentTheme.textSecondary} border-l pl-4 ${currentTheme.cardBorder}`}>
-                  Student Edition | Powered by Gemini 2.5
-                </span>
                 <button 
                   onClick={() => setShowSettings(true)}
                   className={`p-2 rounded-full transition-all ${currentTheme.textSecondary} hover:${currentTheme.accentColor} hover:bg-slate-500/10`}
@@ -150,13 +161,21 @@ const App: React.FC = () => {
         </header>
 
         {/* Main Content */}
-        <main className="flex-grow flex flex-col items-center justify-center w-full">
+        <main className="flex-grow flex flex-col items-center justify-center w-full pb-20">
           {!currentUser ? (
              <Auth onLogin={handleLogin} systemLanguage={systemLanguage} theme={currentTheme} />
           ) : (
             <>
                 {mode === GameMode.SETUP && (
-                    <Setup onStart={handleStart} systemLanguage={systemLanguage} theme={currentTheme} currentUser={currentUser} onLogout={handleLogout} />
+                    <Setup 
+                        onStart={handleStart} 
+                        systemLanguage={systemLanguage} 
+                        theme={currentTheme} 
+                        currentUser={currentUser} 
+                        onLogout={handleLogout}
+                        isPro={isPro}
+                        onUpgrade={() => setShowSettings(true)}
+                    />
                 )}
                 
                 {mode === GameMode.LIVE_VOICE && config && (
@@ -192,9 +211,18 @@ const App: React.FC = () => {
           setTheme={handleSetTheme}
           voiceName={voiceName}
           setVoiceName={setVoiceName}
+          isPro={isPro}
+          onTogglePro={handleTogglePro}
         />
 
       </div>
+      
+      {/* Advertisement Banner (Only for Non-Pro) */}
+      {currentUser && !isPro && (
+          <div className="fixed bottom-0 w-full z-50">
+              <AdBanner theme={currentTheme} systemLanguage={systemLanguage} onRemoveAds={() => setShowSettings(true)} />
+          </div>
+      )}
     </div>
   );
 };

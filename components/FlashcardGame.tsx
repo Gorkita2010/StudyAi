@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flashcard, Theme } from '../types';
 import { generateFlashcards } from '../services/genai';
+import { AuthService } from '../services/auth';
 import { t } from '../utils/translations';
 
 interface FlashcardGameProps {
@@ -25,15 +26,41 @@ const FlashcardGame: React.FC<FlashcardGameProps> = ({ studyMaterial, language, 
 
     const loadCards = async () => {
         setLoading(true);
+        // Get all cards from AI
         const generated = await generateFlashcards(studyMaterial, language);
-        setCards(generated);
+        
+        // Filter out cards user already knows
+        const user = AuthService.getCurrentUser();
+        let cardsToShow = generated;
+        if (user) {
+            const learned = AuthService.getLearnedFlashcards(user.id);
+            cardsToShow = generated.filter(c => !learned.includes(c.front));
+        }
+
+        setCards(cardsToShow);
         setLoading(false);
         setCurrentIndex(0);
         setFinished(false);
         setIsFlipped(false);
     };
+    
+    const handleResetDeck = () => {
+        const user = AuthService.getCurrentUser();
+        if (user) {
+            AuthService.resetFlashcards(user.id);
+            loadCards();
+        }
+    }
 
     const handleNext = (knewIt: boolean) => {
+        // Save "Learned" status
+        if (knewIt) {
+            const user = AuthService.getCurrentUser();
+            if (user && cards[currentIndex]) {
+                AuthService.markFlashcardLearned(user.id, cards[currentIndex].front);
+            }
+        }
+
         setIsFlipped(false);
         setTimeout(() => {
             if (currentIndex < cards.length - 1) {
@@ -53,12 +80,14 @@ const FlashcardGame: React.FC<FlashcardGameProps> = ({ studyMaterial, language, 
         );
     }
 
-    if (finished) {
-        return (
+    if (cards.length === 0 && !loading) {
+         return (
             <div className={`flex flex-col items-center justify-center h-80 space-y-6 animate-fadeIn`}>
+                <div className="text-6xl">🎉</div>
                 <h2 className={`text-2xl font-bold ${theme.textMain}`}>{t('flashcardsDone', systemLanguage)}</h2>
+                <p className={theme.textSecondary}>You have mastered all cards for this session.</p>
                 <button 
-                    onClick={loadCards} 
+                    onClick={handleResetDeck} 
                     className={`px-6 py-3 rounded-xl font-bold shadow-lg ${theme.primaryBtn}`}
                 >
                     {t('restartCards', systemLanguage)}
@@ -67,7 +96,25 @@ const FlashcardGame: React.FC<FlashcardGameProps> = ({ studyMaterial, language, 
         );
     }
 
-    if (cards.length === 0) return null;
+    if (finished) {
+        return (
+            <div className={`flex flex-col items-center justify-center h-80 space-y-6 animate-fadeIn`}>
+                <h2 className={`text-2xl font-bold ${theme.textMain}`}>{t('flashcardsDone', systemLanguage)}</h2>
+                <button 
+                    onClick={loadCards} 
+                    className={`px-6 py-3 rounded-xl font-bold shadow-lg ${theme.secondaryBtn}`}
+                >
+                    Review Remaining
+                </button>
+                <button 
+                    onClick={handleResetDeck} 
+                    className={`px-6 py-3 rounded-xl font-bold shadow-lg ${theme.primaryBtn}`}
+                >
+                    {t('restartCards', systemLanguage)}
+                </button>
+            </div>
+        );
+    }
 
     const currentCard = cards[currentIndex];
 

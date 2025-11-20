@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Theme, MathStep } from '../types';
 import { solveMathProblem, generateSpeech } from '../services/genai';
 import { t } from '../utils/translations';
+import VoiceInput from './VoiceInput';
 
 interface MathTutorProps {
     systemLanguage: string;
@@ -83,6 +84,10 @@ const MathTutor: React.FC<MathTutorProps> = ({ systemLanguage, theme, voiceName,
         }
     };
 
+    const handleVoiceInput = (text: string) => {
+        setInput(prev => prev + (prev ? ' ' : '') + text);
+    }
+
     return (
         <div className={`w-full max-w-4xl mx-auto p-4 animate-fadeIn`}>
             <div className="flex justify-between items-center mb-6">
@@ -95,15 +100,25 @@ const MathTutor: React.FC<MathTutorProps> = ({ systemLanguage, theme, voiceName,
             {/* Input Area */}
             <div className={`p-6 rounded-xl border mb-8 ${theme.cardBg} ${theme.cardBorder}`}>
                 <div className="flex gap-4">
-                    <div className="flex-grow">
+                    <div className="flex-grow relative">
                         <label className={`block text-sm font-bold mb-2 ${theme.textMain}`}>{t('mathInputLabel', systemLanguage)}</label>
-                        <input 
-                            type="text" 
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder={t('mathInputPlaceholder', systemLanguage)}
-                            className={`w-full px-4 py-3 rounded-lg border outline-none ${theme.inputBg}`}
-                        />
+                        <div className="relative">
+                            <input 
+                                type="text" 
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder={t('mathInputPlaceholder', systemLanguage)}
+                                className={`w-full pl-4 pr-10 py-3 rounded-lg border outline-none ${theme.inputBg}`}
+                            />
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10">
+                                <VoiceInput 
+                                    onResult={handleVoiceInput} 
+                                    language={systemLanguage}
+                                    systemLanguage={systemLanguage}
+                                    className={`p-1.5 rounded-full hover:bg-slate-500/20 ${theme.textSecondary}`}
+                                />
+                            </div>
+                        </div>
                     </div>
                     <div className="flex items-end">
                          <button 

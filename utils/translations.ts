@@ -17,6 +17,7 @@ export const translations: Record<string, any> = {
     formatLabel: "Format",
     formatWritten: "Written (Essay)",
     formatTest: "Test (A/B/C/D)",
+    selectFormatTitle: "Select Exam Format",
     difficultyLabel: "Difficulty Level",
     diffEasy: "Easy (Recall)",
     diffMedium: "Medium (Understanding)",
@@ -118,7 +119,7 @@ export const translations: Record<string, any> = {
     iKnewIt: "I Knew It",
     iDidntKnow: "Review Again",
     flashcardsDone: "All cards reviewed!",
-    restartCards: "Restart Deck",
+    restartCards: "Reset Deck",
     // Podcast
     genPodcast: "Generate Podcast",
     podcastDesc: "Listen to an AI-generated conversation about your syllabus.",
@@ -159,6 +160,51 @@ export const translations: Record<string, any> = {
     driveLogin: "Connect Google Drive",
     // Quiz Game
     showMathSymbols: "Show Math Symbols",
+    autoReadQuestion: "Auto-read Question",
+    // Monetization
+    adSpace: "Advertisement",
+    removeAds: "Remove Ads",
+    upgradeToPro: "Upgrade to Pro",
+    proBenefits: "Unlock Math Tutor, Podcasts & No Ads",
+    premiumFeature: "Premium Feature",
+    unlockNow: "Unlock Now",
+    subscriptionTitle: "Subscription",
+    currentPlan: "Current Plan",
+    planFree: "Free",
+    planPro: "Pro",
+    restorePurchases: "Restore Purchases",
+    // Voice Input
+    startDictation: "Start Dictation",
+    stopDictation: "Stop Dictation",
+    listeningState: "Listening...",
+    // Grading
+    gradeLabel: "Final Grade",
+    gradeFail: "Fail",
+    gradeSufficient: "Sufficient",
+    gradeGood: "Good",
+    gradeNotable: "Notable",
+    gradeOutstanding: "Outstanding",
+    // Review Mode
+    failedQuestionsTitle: "Review Needed",
+    reviewFailedBtn: "Review Failed Questions",
+    noFailedQuestions: "Great job! No failed questions pending.",
+    exitExam: "Exit",
+    exitConfirm: "Are you sure you want to exit? Progress will be saved.",
+    // Manual Oral Controls
+    startAnswering: "Tap to Answer",
+    finishAnswering: "Finish Answer",
+    interruptAI: "Stop / Interrupt",
+    // Rate Limit
+    limitExceeded: "Daily limit exceeded. Please upgrade or try again tomorrow.",
+    // BYOK
+    byokTitle: "Bring Your Own Key (BYOK)",
+    byokDesc: "Enter your personal Gemini API Key to unlock UNLIMITED usage and bypass daily limits.",
+    byokPlaceholder: "Paste AIzaSy... here",
+    getKeyLink: "Get a free API Key here",
+    apiKeySaved: "API Key Saved! Unlimited Mode Active.",
+    apiKeyRemoved: "API Key Removed. Standard limits apply.",
+    saveKey: "Save Key",
+    removeKey: "Remove Key"
   },
   Spanish: {
     appTitle: "StudyAi",
@@ -177,6 +223,7 @@ export const translations: Record<string, any> = {
     formatLabel: "Formato",
     formatWritten: "Escrito (Ensayo)",
     formatTest: "Test (A/B/C/D)",
+    selectFormatTitle: "Selecciona Formato del Examen",
     difficultyLabel: "Nivel de Dificultad",
     diffEasy: "Básico (Conceptos)",
     diffMedium: "Medio (Comprensión)",
@@ -268,7 +315,6 @@ export const translations: Record<string, any> = {
     outlinePrompt: "Estructurando temario...",
     mindMapPrompt: "Dibujando conexiones...",
     backToSetup: "Volver al Panel",
-    // Summary Density
     densityLabel: "Nivel de Detalle",
     densityDense: "Denso (80% Detalle)",
     densityMedium: "Medio (60% Detalle)",
@@ -319,272 +365,98 @@ export const translations: Record<string, any> = {
     driveLogin: "Conectar Google Drive",
     // Quiz Game
     showMathSymbols: "Teclado Matemático",
+    autoReadQuestion: "Leer Pregunta",
+    // Monetization
+    adSpace: "Publicidad",
+    removeAds: "Eliminar Anuncios",
+    upgradeToPro: "Mejorar a Pro",
+    proBenefits: "Desbloquea Tutor Matemático, Podcast y Sin Anuncios",
+    premiumFeature: "Función Premium",
+    unlockNow: "Desbloquear Ahora",
+    subscriptionTitle: "Suscripción",
+    currentPlan: "Plan Actual",
+    planFree: "Gratis",
+    planPro: "Pro",
+    restorePurchases: "Restaurar Compras",
+    // Voice Input
+    startDictation: "Iniciar Dictado",
+    stopDictation: "Detener Dictado",
+    listeningState: "Escuchando...",
+    // Grading
+    gradeLabel: "Nota Final",
+    gradeFail: "Suspenso",
+    gradeSufficient: "Suficiente",
+    gradeGood: "Bien",
+    gradeNotable: "Notable",
+    gradeOutstanding: "Sobresaliente",
+    // Review Mode
+    failedQuestionsTitle: "Preguntas Falladas",
+    reviewFailedBtn: "Repasar Fallos",
+    noFailedQuestions: "¡Genial! No tienes fallos pendientes.",
+    exitExam: "Salir",
+    exitConfirm: "¿Seguro que quieres salir? Se guardará el progreso.",
+    // Manual Oral Controls
+    startAnswering: "Pulsar para Responder",
+    finishAnswering: "Terminar Respuesta",
+    interruptAI: "Detener / Interrumpir",
+    // Rate Limit
+    limitExceeded: "Límite diario alcanzado. Vuelve mañana o mejora a Pro.",
+    // BYOK
+    byokTitle: "Usa tu Propia Clave (BYOK)",
+    byokDesc: "Introduce tu API Key de Gemini para uso ILIMITADO y sin restricciones diarias.",
+    byokPlaceholder: "Pega AIzaSy... aquí",
+    getKeyLink: "Consigue tu clave gratis aquí",
+    apiKeySaved: "¡Clave guardada! Modo Ilimitado Activo.",
+    apiKeyRemoved: "Clave eliminada. Se aplican límites estándar.",
+    saveKey: "Guardar Clave",
+    removeKey: "Borrar Clave"
   },
   Basque: {
-    appTitle: "StudyAi",
-    subtitle: "Zure ikasgaia sartu. Azterketa gainditu.",
-    syllabusLabel: "Ikasgaia / Ikasmateriala",
-    pastePlaceholder: "Itsatsi oharrak hemen...",
-    uploadBtn: "Igo PDF / Irudiak / Testua",
-    analyzeBtn: "Aztertu Ikasgaia",
-    examLangLabel: "Azterketa Hizkuntza",
-    formatLabel: "Formatua",
-    formatWritten: "Idatzia (Saiakera)",
-    formatTest: "Test (A/B/C/D)",
-    difficultyLabel: "Zailtasun Maila",
-    styleLabel: "Aztertzaile Estiloa",
-    startOral: "Hasi Ahozko Azterketa",
-    startWritten: "Hasi Azterketa Idatzia",
-    privacy: "Pribatutasuna",
-    oralTitle: "Ahozko Azterketa",
-    score: "Puntuazioa",
-    endExam: "Amaitu Azterketa",
-    question: "Galdera",
-    submitAnswer: "Bidali Erantzuna",
-    nextQuestion: "Hurrengo Galdera",
-    settingsTitle: "Ezarpenak",
-    systemLang: "Sistema Hizkuntza",
-    themeLabel: "Gaia",
-    loginBtn: "Saioa Hasi",
-    googleBtn: "Jarraitu Google-rekin",
-    guestBtn: "Jarraitu Gonbidatu gisa",
-    guestName: "Ikasle Gonbidatua",
-    startStudy: "Ikasketa Modua",
-    studyHubTitle: "Ikasketa Zentroa",
-    tabSummary: "Laburpena",
-    tabOutline: "Eskema",
-    tabMindMap: "Mapa Mentala",
-    tabFlashcards: "Flashcards",
-    tabPodcast: "Podcasta",
-    generate: "Sortu",
-    saveToDrive: "Gorde Google Drive-n",
-    downloadDevice: "Deskargatu",
-    densityLabel: "Xehetasun Maila",
-    densityDense: "Dentsua (%80)",
-    densityMedium: "Ertaina (%60)",
-    densityConcise: "Zehaztua (%35)",
-    showMathSymbols: "Erakutsi Ikur Matematikoak",
-    coverageLabel: "Estaldura",
-    coverage100: "%100 (Osoa)",
-    timeRemaining: "Geratzen dena"
+    // ...
+    startAnswering: "Sakatu Erantzuteko",
+    finishAnswering: "Amaitu Erantzuna",
+    interruptAI: "Gelditu / Eten",
+    limitExceeded: "Eguneko muga gaindituta."
   },
   Catalan: {
-    appTitle: "StudyAi",
-    subtitle: "Introdueix el teu temari. Domina el teu examen.",
-    syllabusLabel: "Temari / Material d'Estudi",
-    pastePlaceholder: "Enganxa els teus apunts aquí...",
-    uploadBtn: "Pujar PDF / Imatges / Text",
-    analyzeBtn: "Analitzar Temari",
-    examLangLabel: "Idioma de l'Examen",
-    formatLabel: "Format",
-    formatWritten: "Escrit (Assaig)",
-    formatTest: "Test (A/B/C/D)",
-    difficultyLabel: "Nivell de Dificultat",
-    styleLabel: "Estil de l'Examinador",
-    startOral: "Iniciar Examen Oral",
-    startWritten: "Iniciar Examen Escrit",
-    privacy: "Privadesa",
-    oralTitle: "Examen Oral",
-    score: "Puntuació",
-    endExam: "Finalitzar Examen",
-    question: "Pregunta",
-    submitAnswer: "Enviar Resposta",
-    nextQuestion: "Següent Pregunta",
-    settingsTitle: "Configuració",
-    systemLang: "Idioma del Sistema",
-    themeLabel: "Tema",
-    loginBtn: "Iniciar Sessió",
-    googleBtn: "Continuar amb Google",
-    guestBtn: "Continuar com a Convidat",
-    guestName: "Estudiant Convidat",
-    startStudy: "Mode Estudi",
-    studyHubTitle: "Centre d'Estudi",
-    tabSummary: "Resum",
-    tabOutline: "Esquema",
-    tabMindMap: "Mapa Mental",
-    tabFlashcards: "Flashcards",
-    tabPodcast: "Podcast",
-    generate: "Generar",
-    saveToDrive: "Desar a Google Drive",
-    downloadDevice: "Descarregar",
-    densityLabel: "Nivell de Detall",
-    densityDense: "Dens (80%)",
-    densityMedium: "Mitjà (60%)",
-    densityConcise: "Concís (35%)",
-    showMathSymbols: "Símbols Matemàtics",
-    coverageLabel: "Cobertura",
-    coverage100: "100% (Total)",
-    timeRemaining: "Restant"
+    // ...
+    startAnswering: "Prem per Respondre",
+    finishAnswering: "Acabar Resposta",
+    interruptAI: "Aturar / Interrompre",
+    limitExceeded: "Límit diari superat."
   },
   Galician: {
-    appTitle: "StudyAi",
-    subtitle: "Introduce o teu temario. Domina o teu exame.",
-    syllabusLabel: "Temario / Material de Estudo",
-    pastePlaceholder: "Pega os teus apuntamentos aquí...",
-    uploadBtn: "Subir PDF / Imaxes / Texto",
-    analyzeBtn: "Analizar Temario",
-    examLangLabel: "Idioma do Exame",
-    formatLabel: "Formato",
-    formatWritten: "Escrito (Ensaio)",
-    formatTest: "Test (A/B/C/D)",
-    difficultyLabel: "Nivel de Dificultade",
-    styleLabel: "Estilo do Examinador",
-    startOral: "Iniciar Exame Oral",
-    startWritten: "Iniciar Exame Escrito",
-    privacy: "Privacidade",
-    oralTitle: "Exame Oral",
-    score: "Puntuación",
-    endExam: "Rematar Exame",
-    question: "Pregunta",
-    submitAnswer: "Enviar Resposta",
-    nextQuestion: "Seguinte Pregunta",
-    settingsTitle: "Configuración",
-    systemLang: "Idioma do Sistema",
-    themeLabel: "Tema",
-    loginBtn: "Iniciar Sesión",
-    googleBtn: "Continuar con Google",
-    guestBtn: "Continuar como Convidado",
-    guestName: "Estudante Convidado",
-    startStudy: "Modo Estudo",
-    studyHubTitle: "Centro de Estudo",
-    tabSummary: "Resumo",
-    tabOutline: "Esquema",
-    tabMindMap: "Mapa Mental",
-    tabFlashcards: "Flashcards",
-    tabPodcast: "Podcast",
-    generate: "Xerar",
-    saveToDrive: "Gardar en Google Drive",
-    downloadDevice: "Descargar",
-    densityLabel: "Nivel de Detalle",
-    densityDense: "Denso (80%)",
-    densityMedium: "Medio (60%)",
-    densityConcise: "Conciso (35%)",
-    showMathSymbols: "Símbolos Matemáticos",
-    coverageLabel: "Cobertura",
-    coverage100: "100% (Total)",
-    timeRemaining: "Restante"
-  },
-  French: {
-    appTitle: "StudyAi",
-    subtitle: "Entrez votre programme. Maîtrisez votre examen.",
-    syllabusLabel: "Programme / Matériel d'étude",
-    pastePlaceholder: "Collez vos notes ici...",
-    uploadBtn: "Télécharger PDF / Images / Texte",
-    analyzeBtn: "Analyser le programme",
-    examLangLabel: "Langue de l'examen",
-    formatLabel: "Format",
-    formatWritten: "Écrit (Essai)",
-    formatTest: "Test (QCM)",
-    difficultyLabel: "Niveau de difficulté",
-    styleLabel: "Style de l'examinateur",
-    startOral: "Commencer l'examen oral",
-    startWritten: "Commencer l'examen écrit",
-    privacy: "Confidentialité",
-    oralTitle: "Examen Oral",
-    score: "Score",
-    endExam: "Terminer l'examen",
-    question: "Question",
-    submitAnswer: "Soumettre la réponse",
-    nextQuestion: "Question suivante",
-    settingsTitle: "Paramètres",
-    systemLang: "Langue du système",
-    themeLabel: "Thème",
-    loginBtn: "Se connecter",
-    googleBtn: "Continuer avec Google",
-    guestBtn: "Continuer en tant qu'invité",
-    guestName: "Étudiant Invité",
-    startStudy: "Mode Étude",
-    studyHubTitle: "Centre d'étude",
-    tabSummary: "Résumé",
-    tabOutline: "Plan",
-    tabMindMap: "Carte Heuristique",
-    tabFlashcards: "Flashcards",
-    tabPodcast: "Podcast",
-    generate: "Générer",
-    saveToDrive: "Enregistrer sur Drive",
-    downloadDevice: "Télécharger",
-    densityLabel: "Niveau de détail",
-    densityDense: "Dense (80%)",
-    densityMedium: "Moyen (60%)",
-    densityConcise: "Concis (35%)",
-    showMathSymbols: "Symboles Mathématiques",
-    coverageLabel: "Couverture",
-    coverage100: "100% (Total)",
-    timeRemaining: "Restant"
-  },
-  German: {
-    appTitle: "StudyAi",
-    subtitle: "Geben Sie Ihren Lehrplan ein. Meistern Sie Ihre Prüfung.",
-    syllabusLabel: "Lehrplan / Lernmaterial",
-    pastePlaceholder: "Notizen hier einfügen...",
-    uploadBtn: "PDF / Bilder / Text hochladen",
-    analyzeBtn: "Lehrplan analysieren",
-    examLangLabel: "Prüfungssprache",
-    formatLabel: "Format",
-    formatWritten: "Schriftlich (Aufsatz)",
-    formatTest: "Test (A/B/C)",
-    difficultyLabel: "Schwierigkeitsgrad",
-    styleLabel: "Prüfer-Stil",
-    startOral: "Mündliche Prüfung starten",
-    startWritten: "Schriftliche Prüfung starten",
-    privacy: "Datenschutz",
-    oralTitle: "Mündliche Prüfung",
-    score: "Punktzahl",
-    endExam: "Prüfung beenden",
-    question: "Frage",
-    submitAnswer: "Antwort senden",
-    nextQuestion: "Nächste Frage",
-    settingsTitle: "Einstellungen",
-    systemLang: "Systemsprache",
-    themeLabel: "Thema",
-    loginBtn: "Anmelden",
-    googleBtn: "Weiter mit Google",
-    guestBtn: "Als Gast fortfahren",
-    guestName: "Gaststudent",
-    startStudy: "Lernmodus",
-    studyHubTitle: "Lernzentrum",
-    tabSummary: "Zusammenfassung",
-    tabOutline: "Gliederung",
-    tabMindMap: "Mindmap",
-    tabFlashcards: "Karteikarten",
-    tabPodcast: "Podcast",
-    generate: "Generieren",
-    saveToDrive: "In Google Drive speichern",
-    downloadDevice: "Herunterladen",
-    densityLabel: "Detailgenauigkeit",
-    densityDense: "Dicht (80%)",
-    densityMedium: "Mittel (60%)",
-    densityConcise: "Prägnant (35%)",
-    showMathSymbols: "Mathematische Symbole",
-    coverageLabel: "Abdeckung",
-    coverage100: "100% (Voll)",
-    timeRemaining: "Verbleibend"
+    // ...
+    startAnswering: "Preme para Responder",
+    finishAnswering: "Rematar Resposta",
+    interruptAI: "Parar / Interromper",
+    limitExceeded: "Límit diario superado."
   }
 };
 
-export function detectBrowserLanguage(): string {
+export const detectBrowserLanguage = (): string => {
   if (typeof navigator === 'undefined') return 'English';
   
-  // Get the first preferred language code (e.g., "es-ES", "en-US", "ca")
-  const langCode = navigator.language;
-  const shortCode = langCode.split('-')[0].toLowerCase();
+  const lang = navigator.language.split('-')[0].toLowerCase();
+  
+  switch (lang) {
+      case 'es': return 'Spanish';
+      case 'eu': return 'Basque';
+      case 'ca': return 'Catalan'; 
+      case 'gl': return 'Galician';
+      case 'fr': return 'French';
+      case 'de': return 'German';
+      default: return 'English';
+  }
+};
 
-  const map: Record<string, string> = {
-      'en': 'English',
-      'es': 'Spanish',
-      'ca': 'Catalan',
-      'eu': 'Basque',
-      'gl': 'Galician',
-      'fr': 'French',
-      'de': 'German'
-  };
-
-  // Try to find direct match (e.g., 'es' -> Spanish)
-  return map[shortCode] || 'English';
-}
-
-export function t(key: string, language: string): string {
-  const langMap = translations[language] || translations['English'];
-  // Fallback to English if key missing in target lang
-  return langMap[key] || translations['English'][key] || key;
-}
+export const t = (key: string, language: string): string => {
+    let effectiveLang = language;
+    if (!translations[effectiveLang]) {
+        if (effectiveLang === 'Valencian') effectiveLang = 'Catalan';
+        else effectiveLang = 'English';
+    }
+    
+    const dict = translations[effectiveLang] || translations['English'];
+    return dict[key] || translations['English'][key] || key;
+};

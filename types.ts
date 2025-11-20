@@ -17,6 +17,7 @@ export interface GameConfig {
   totalQuestions: number;
   examPlan?: string[];
   minQuestions?: number;
+  staticQuestions?: ExamQuestion[]; // For Review Mode
 }
 
 export interface ExamQuestion {
@@ -25,6 +26,11 @@ export interface ExamQuestion {
   options?: string[]; 
   correctAnswerIndex?: number; 
   topic?: string; // Added for analytics tracking
+}
+
+export interface FailedQuestion {
+  question: ExamQuestion;
+  timestamp: number;
 }
 
 export interface LeaderboardEntry {
@@ -66,6 +72,12 @@ export interface UserProfile {
   totalScore: number;
   themePreference?: string; // Added for theme persistence
   topicStats?: Record<string, { correct: number; total: number }>; // Analytics
+  isPro?: boolean; // Monetization status
+  failedQuestions?: FailedQuestion[]; // For Review Mode
+  learnedFlashcards?: string[]; // Hashes or front text of known cards
+  dailyUsage?: number;
+  lastUsageDate?: string; // ISO Date string YYYY-MM-DD
+  customApiKey?: string; // BYOK: Bring Your Own Key
 }
 
 export interface Flashcard {
@@ -76,4 +88,27 @@ export interface Flashcard {
 export interface MathStep {
   latex: string;
   explanation: string;
+}
+
+// Web Speech API Types
+export interface SpeechRecognitionEvent {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+export interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: any) => void;
+  onend: (event: any) => void;
 }

@@ -2,8 +2,21 @@
 import { GoogleGenAI, Modality, Type, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
 import { ExamQuestion, Flashcard, MathStep } from "../types";
 import { API_KEY } from "../config";
+import { AuthService } from "./auth";
 
-const getAiClient = () => new GoogleGenAI({ apiKey: API_KEY });
+// Helper to decide which key to use
+const getApiKey = (): string => {
+    const user = AuthService.getCurrentUser();
+    if (user) {
+        const profile = AuthService.getUserProfile(user.id);
+        if (profile.customApiKey && profile.customApiKey.startsWith("AIza")) {
+            return profile.customApiKey;
+        }
+    }
+    return API_KEY;
+}
+
+const getAiClient = () => new GoogleGenAI({ apiKey: getApiKey() });
 
 const safetySettings = [
   {
@@ -24,12 +37,34 @@ const safetySettings = [
   },
 ];
 
-// Helper function to handle Rate Limits (429) with exponential backoff
 const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
+  const user = AuthService.getCurrentUser();
+  let isUsingCustomKey = false;
+
+  if (user) {
+      const profile = AuthService.getUserProfile(user.id);
+      // BYOK Logic: If user has custom key, skip limits
+      if (profile.customApiKey && profile.customApiKey.startsWith("AIza")) {
+          isUsingCustomKey = true;
+      } else {
+          // Default Key Logic: Enforce Rate Limits
+          const canProceed = AuthService.checkUsageLimit(user.id);
+          if (!canProceed) {
+              throw new Error("Daily usage limit exceeded.");
+          }
+      }
+  }
+
   try {
-    return await fn();
+    const result = await fn();
+    
+    // Increment usage only if using default key (to track costs)
+    if (user && !isUsingCustomKey) {
+        AuthService.incrementUsage(user.id);
+    }
+
+    return result;
   } catch (error: any) {
-    // Check for 429 or "RESOURCE_EXHAUSTED"
     const isRateLimit = error.status === 429 || 
                         error.code === 429 || 
                         error.message?.includes('429') || 
@@ -43,6 +78,19 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000)
     throw error;
   }
 };
+
+export const getPersonalityPrompt = (styleId: string): string => {
+    switch(styleId) {
+        case 'strict':
+            return "ROLE: You are a STRICT, RUDE, and UNFORGIVING Professor. Do NOT praise the student. If they make a mistake, criticize them sharply. Focus on precision. Never accept vague answers.";
+        case 'encouraging':
+            return "ROLE: You are a SUPER ENERGETIC and HAPPY Cheerleader Coach! Use lots of EMOJIS 🎉✨. Always find something positive to say. Even if they fail, encourage them with 'Nice try!' or 'You almost had it!'. Be very friendly.";
+        case 'socratic':
+            return "ROLE: You are a Socratic Tutor. NEVER give the direct answer. If the student answers incorrectly or partially, ask a FOLLOW-UP question to guide them to the truth. Make them think deeply.";
+        default:
+            return "ROLE: Academic Examiner.";
+    }
+}
 
 export const extractTextFromMedia = async (file: File): Promise<string> => {
   const ai = getAiClient();
@@ -95,6 +143,7 @@ export const extractTextFromMedia = async (file: File): Promise<string> => {
       if (msg.includes("403")) msg = "API Key invalid or unauthorized domain.";
       if (msg.includes("400")) msg = "Bad Request. File format might not be supported.";
       if (msg.includes("429")) msg = "Server busy (Rate Limit). Please try again in a moment.";
+      if (msg.includes("Daily usage limit")) msg = "Daily Usage Limit Exceeded.";
       return `[Error extracting text from ${file.name}: ${msg}]`;
   }
 }
@@ -173,6 +222,13 @@ export const generateExamQuestion = async (
   LANGUAGE: ${language}
   FORMAT: ${examFormat === 'test' ? 'Multiple Choice (4 options: A, B, C, D)' : 'Written Essay Question'}
   ${topicInstruction}
+  
+  CRITICAL RULES FOR QUESTION GENERATION:
+  1. Keep the question CONCISE and SHORT. Maximum 2 sentences (approx 30 words).
+  2. Do NOT include long preambles, complex context quotes, or "Analyze this..." instructions inside the question text itself.
+  3. Just ask the question directly and clearly.
+  4. If specific context is needed, keep it brief.
+  
   Task: Generate ONE exam question.
   `;
 
@@ -414,7 +470,6 @@ export const generateFlashcards = async (studyMaterial: string, language: string
 export const generatePodcast = async (studyMaterial: string, language: string, coveragePercentage: number): Promise<AudioBuffer | null> => {
     const ai = getAiClient();
     
-    // Step 1: Generate the Script using the text model
     const scriptPrompt = `
     You are a scriptwriter for an educational podcast.
     TASK: Generate a deep, comprehensive dialogue between two hosts: Puck (Professor) and Kore (Student).
@@ -456,7 +511,6 @@ export const generatePodcast = async (studyMaterial: string, language: string, c
 
     if (!script) return null;
 
-    // Step 2: Send the generated script to the TTS model
     try {
          const response = await callWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
